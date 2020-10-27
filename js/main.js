@@ -58,12 +58,18 @@ function notAuthorized() {
     event.preventDefault();
     userLogin = loginInput.value;
     localStorage.setItem('userLogin', userLogin);
-    toggleModalAuth();
-    buttonAuth.removeEventListener('click', toggleModalAuth);
-    closeAuth.removeEventListener('click', toggleModalAuth);
-    logInForm.removeEventListener('submit', logIn);
-    logInForm.reset();
-    checkAuth();
+    if (userLogin !== '') {
+      toggleModalAuth();
+      buttonAuth.removeEventListener('click', toggleModalAuth);
+      closeAuth.removeEventListener('click', toggleModalAuth);
+      logInForm.removeEventListener('submit', logIn);
+      logInForm.reset();
+      loginInput.style.border = '';
+      checkAuth();
+    } else {
+      loginInput.style.border = '1px solid red';
+    }
+
   }
 
 
