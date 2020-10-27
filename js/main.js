@@ -27,6 +27,11 @@ let userLogin = localStorage.getItem('userLogin')
 
 function toggleModalAuth() {
   modalAuth.classList.toggle('is-open');
+  if (modalAuth.classList.contains('is-open')) {
+    disableScroll();
+  } else {
+    enableScroll();
+  }
 }
 
 function authorized() {
@@ -42,7 +47,6 @@ function authorized() {
     checkAuth();
   }
 
-  console.log('авторизован');
   userName.textContent = userLogin;
   buttonAuth.style.display = 'none';
   userName.style.display = 'inline';
@@ -52,22 +56,21 @@ function authorized() {
 
 function notAuthorized() {
 
-  console.log('не авторизован');
 
   function logIn(event) {
     event.preventDefault();
     userLogin = loginInput.value;
     localStorage.setItem('userLogin', userLogin);
-    if (userLogin !== '') {
+    if (userLogin.trim()) {
       toggleModalAuth();
       buttonAuth.removeEventListener('click', toggleModalAuth);
       closeAuth.removeEventListener('click', toggleModalAuth);
       logInForm.removeEventListener('submit', logIn);
       logInForm.reset();
-      loginInput.style.border = '';
       checkAuth();
     } else {
       loginInput.style.border = '1px solid red';
+      loginInput.value = '';
     }
 
   }
@@ -76,6 +79,11 @@ function notAuthorized() {
   buttonAuth.addEventListener('click', toggleModalAuth);
   closeAuth.addEventListener('click', toggleModalAuth);
   logInForm.addEventListener('submit', logIn);
+  modalAuth.addEventListener('click', function(event) {
+    if (event.target.classList.contains('is-open')) {
+      toggleModalAuth();
+    } 
+  });
 }
 
 function checkAuth() {
