@@ -17,8 +17,12 @@ const restaurants = document.querySelector('.restaurants');
 const menu = document.querySelector('.menu');
 const logo = document.querySelector('.logo');
 const cardsMenu = document.querySelector('.cards-menu');
+const inputSearch = document.querySelector('.input-search');
 
-
+const restaurantRating = document.querySelector('.rating');
+const restaurantPrice = document.querySelector('.price');
+const restaurantTitle = document.querySelector('.restaurant-title');
+const restaurantCategory = document.querySelector('.category');
 
 let userLogin = localStorage.getItem('userLogin');
 
@@ -115,9 +119,12 @@ checkAuth();
 
 
 function createCardRestaraunt( {image, kitchen, name, price, stars, products, time_of_delivery : timeOfDelivery}) {
-
+  const cardRestaurant = document.createElement('a');
+  cardRestaurant.className = 'card card-restaurant';
+  cardRestaurant.products = products;
+  cardRestaurant.info = { kitchen, name, price, stars };
   const card = `
-    <a class="card card-restaurant" data-products="${products}">
+
       <img src="${image}" alt="image" class="card-image"/>
       <div class="card-text">
         <div class="card-heading">
@@ -130,27 +137,28 @@ function createCardRestaraunt( {image, kitchen, name, price, stars, products, ti
           <div class="category">${kitchen}</div>
         </div>
       </div>
-    </a>
-  `;
 
-  cardsRestaurants.insertAdjacentHTML('beforeend', card);
+  `;
+  cardRestaurant.insertAdjacentHTML('beforeend', card);
+  cardsRestaurants.insertAdjacentElement('beforeend', cardRestaurant);
 
 }
 
 
-function createCardGood({ description, name, price, image, }) {
+function createCardGood({ description, name, price, image }) {
 
   const card = document.createElement('div');
   card.className='card';
+
   card.insertAdjacentHTML('beforeend', `
-						<img src="${image}" alt="image" class="card-image"/>
+						<img src="${image}" alt="${name}" class="card-image"/>
 						<div class="card-text">
 							<div class="card-heading">
 								<h3 class="card-title card-title-reg">${name}</h3>
 							</div>
 							<div class="card-info">
-								<div class="ingredients">${description}
-								</div>
+								<p class="ingredients">${description}
+								</p>
 							</div>
 							<div class="card-buttons">
 								<button class="button button-primary button-add-cart">
@@ -161,7 +169,8 @@ function createCardGood({ description, name, price, image, }) {
 							</div>
 						</div>
   `);
-  cardsMenu.insertAdjacentElement('beforeend', card)
+
+  cardsMenu.insertAdjacentElement('beforeend', card);
 }
 
 function openGoods(event) {
@@ -176,10 +185,19 @@ function openGoods(event) {
       containerPromo.classList.add('hide');
       restaurants.classList.add('hide');
       menu.classList.remove('hide');
-      getData(`./db/${restaurant.dataset.products}`).then(function(data){
+
+      const { name, kitchen, price, stars } = restaurant.info;
+
+      restaurantTitle.textContent = name;
+      restaurantRating.textContent = stars
+      restaurantPrice.textContent = ` от ${price} р.`;
+      restaurantCategory.textContent = kitchen;
+
+      location.hash = `/#${name}`;
+
+      getData(`./db/${restaurant.products}`).then(function(data){
         data.forEach(createCardGood);
       });
-
     }
   } else {
     toggleModalAuth();
@@ -212,10 +230,55 @@ function init() {
     spaceBetween: 100,
     effect: 'coverflow',
     grabCursor: true,
-    scrollbar: {
-      el : '.swiper-scrollbar',
-      draggable	: true,
+  });
+
+
+  inputSearch.addEventListener('keypress', function(event) {
+
+    if (event.charCode === 13) {
+      const value = event.target.value.trim();
+
+      if (!value) {
+        event.target.value = '';
+        event.target.style.border = '1px solid red';
+        setTimeout(function() {
+          event.target.style.border = '';
+        }, 1500);
+        return;
+      }
+
+      getData('./db/partners.json')
+      .then(function (data) {
+        return data.map(function(partner) {
+          return partner.products;
+        });
+      })
+      .then(function (linksProduct) {
+        cardsMenu.textContent = '';
+
+        linksProduct.forEach(function(link) {
+          getData(`./db/${link}`)
+          .then(function (data) {
+
+            const resultSearch = data.filter(function (item) {
+              const name = item.name.toLowerCase();
+              return name.includes(value.toLowerCase());
+            })
+
+            containerPromo.classList.add('hide');
+            restaurants.classList.add('hide');
+            menu.classList.remove('hide');
+
+            restaurantTitle.textContent = 'Результат поиска';
+            restaurantRating.textContent = ""
+            restaurantPrice.textContent = "";
+            restaurantCategory.textContent = "Разная кухня";
+            resultSearch.forEach(createCardGood);
+          })
+        })
+      })
     }
   });
+
 }
 init();
