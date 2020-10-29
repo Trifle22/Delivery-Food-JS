@@ -1,4 +1,5 @@
 'use strict';
+import Swiper from 'https://unpkg.com/swiper/swiper-bundle.esm.browser.min.js';
 
 const cartButton = document.querySelector("#cart-button");
 const modal = document.querySelector(".modal");
@@ -19,13 +20,28 @@ const cardsMenu = document.querySelector('.cards-menu');
 
 
 
-let userLogin = localStorage.getItem('userLogin')
+let userLogin = localStorage.getItem('userLogin');
 
-function toggleModal() {
-  modal.classList.toggle("is-open");
+function validName (str) {
+  const regName = /^[a-zA-Z][a-zA-Z0-9-_\.]{1,20}$/;
+  return regName.test(str);
 }
 
-function toggleModalAuth() {
+
+const toggleModal = function() {
+  modal.classList.toggle("is-open");
+};
+
+const getData = async function(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Ошибка по адресу ${url}, статуc ошибки ${response.status}!`);
+  } 
+  return await response.json();
+};
+
+
+const toggleModalAuth = function() {
   modalAuth.classList.toggle('is-open');
   if (modalAuth.classList.contains('is-open')) {
     loginInput.style.border = '';
@@ -33,7 +49,7 @@ function toggleModalAuth() {
   } else {
     enableScroll();
   }
-}
+};
 
 function authorized() {
 
@@ -53,7 +69,7 @@ function authorized() {
   userName.style.display = 'inline';
   buttonOut.style.display = 'block';
   buttonOut.addEventListener('click', logOut);
-}
+};
 
 function notAuthorized() {
 
@@ -62,7 +78,7 @@ function notAuthorized() {
     event.preventDefault();
     userLogin = loginInput.value;
     localStorage.setItem('userLogin', userLogin);
-    if (userLogin.trim()) {
+    if (validName(userLogin)) {
       toggleModalAuth();
       buttonAuth.removeEventListener('click', toggleModalAuth);
       closeAuth.removeEventListener('click', toggleModalAuth);
@@ -85,7 +101,7 @@ function notAuthorized() {
       toggleModalAuth();
     } 
   });
-}
+};
 
 function checkAuth() {
   if (userLogin) {
@@ -93,26 +109,25 @@ function checkAuth() {
   } else {
     notAuthorized();
   }
-}
+};
 
 checkAuth();
 
-// day2
 
+function createCardRestaraunt( {image, kitchen, name, price, stars, products, time_of_delivery : timeOfDelivery}) {
 
-function createCardRestaraunt() {
   const card = `
-    <a class="card card-restaurant">
-      <img src="img/pizza-plus/preview.jpg" alt="image" class="card-image"/>
+    <a class="card card-restaurant" data-products="${products}">
+      <img src="${image}" alt="image" class="card-image"/>
       <div class="card-text">
         <div class="card-heading">
-          <h3 class="card-title">Пицца плюс</h3>
-          <span class="card-tag tag">50 мин</span>
+          <h3 class="card-title">${name}</h3>
+          <span class="card-tag tag">${timeOfDelivery} мин</span>
         </div>
         <div class="card-info">
-          <div class="rating">4.5</div>
-          <div class="price">От 900 ₽</div>
-          <div class="category">Пицца</div>
+          <div class="rating">${stars}</div>
+          <div class="price">От ${price} ₽</div>
+          <div class="category">${kitchen}</div>
         </div>
       </div>
     </a>
@@ -122,20 +137,19 @@ function createCardRestaraunt() {
 
 }
 
-createCardRestaraunt();
 
-function createCardGood() {
+function createCardGood({ description, name, price, image, }) {
+
   const card = document.createElement('div');
   card.className='card';
   card.insertAdjacentHTML('beforeend', `
-						<img src="img/pizza-plus/pizza-classic.jpg" alt="image" class="card-image"/>
+						<img src="${image}" alt="image" class="card-image"/>
 						<div class="card-text">
 							<div class="card-heading">
-								<h3 class="card-title card-title-reg">Пицца Классика</h3>
+								<h3 class="card-title card-title-reg">${name}</h3>
 							</div>
 							<div class="card-info">
-								<div class="ingredients">Соус томатный, сыр «Моцарелла», сыр «Пармезан», ветчина, салями,
-									грибы.
+								<div class="ingredients">${description}
 								</div>
 							</div>
 							<div class="card-buttons">
@@ -143,7 +157,7 @@ function createCardGood() {
 									<span class="button-card-text">В корзину</span>
 									<span class="button-cart-svg"></span>
 								</button>
-								<strong class="card-price-bold">510 ₽</strong>
+								<strong class="card-price-bold">${price} ₽</strong>
 							</div>
 						</div>
   `);
@@ -152,29 +166,56 @@ function createCardGood() {
 
 function openGoods(event) {
   const target = event.target;
+  if (userLogin) {
+    const restaurant = target.closest('.card-restaurant');
 
-  const restaurant = target.closest('.card-restaurant');
+    if(restaurant) {
 
-  if(restaurant) {
-    containerPromo.classList.add('hide');
-    restaurants.classList.add('hide');
-    menu.classList.remove('hide');
-    cardsMenu.textContent = '';
-    createCardGood();
+
+      cardsMenu.textContent = '';
+      containerPromo.classList.add('hide');
+      restaurants.classList.add('hide');
+      menu.classList.remove('hide');
+      getData(`./db/${restaurant.dataset.products}`).then(function(data){
+        data.forEach(createCardGood);
+      });
+
+    }
+  } else {
+    toggleModalAuth();
   }
-
 }
 
+function init() {
+  getData('./db/partners.json').then(function(data) {
+    data.forEach(createCardRestaraunt)
+  });
+  
+  
+  cartButton.addEventListener("click", toggleModal);
+  
+  close.addEventListener("click", toggleModal);
+  
+  cardsRestaurants.addEventListener('click', openGoods);
+  
+  logo.addEventListener('click', function() {
+  
+    containerPromo.classList.remove('hide');
+    restaurants.classList.remove('hide');
+    menu.classList.add('hide');
+  });
 
+  checkAuth();
 
-cartButton.addEventListener("click", toggleModal);
-
-close.addEventListener("click", toggleModal);
-
-cardsRestaurants.addEventListener('click', openGoods);
-
-logo.addEventListener('click', function() {
-  containerPromo.classList.remove('hide');
-  restaurants.classList.remove('hide');
-  menu.classList.add('hide');
-});
+    new Swiper('.swiper-container', {
+    loop: true,
+    spaceBetween: 100,
+    effect: 'coverflow',
+    grabCursor: true,
+    scrollbar: {
+      el : '.swiper-scrollbar',
+      draggable	: true,
+    }
+  });
+}
+init();
